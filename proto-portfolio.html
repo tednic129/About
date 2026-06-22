@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Tapan Mehta — ADAS / Autonomous Systems</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Display:wght@500;600;700;800;900&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --ink:#0c1110; --ink-2:#13201d;
+    --teal:#355c5c; --teal-bright:#5fb7b0;
+    --amber:#ffac00; --red:#d9472b;
+    --cream:#ffffff; --cream-dim:#aab4b0;
+    --line:rgba(255,255,255,.14);
+    --glass:rgba(18,28,26,.46);
+    --glass-strong:rgba(12,22,20,.62);
+    --on:#06100f; --vig:rgba(4,9,8,.55);
+    --r:16px;
+  }
+  body.light{
+    --ink:#eef0ec; --ink-2:#ffffff;
+    --teal:#2f5a5a; --teal-bright:#176159;
+    --amber:#cf8a00; --red:#c43d22;
+    --cream:#0e1411; --cream-dim:#313d37;
+    --line:rgba(20,42,36,.18);
+    --glass:rgba(255,255,255,.62); --glass-strong:rgba(255,255,255,.8);
+    --on:#ffffff; --vig:rgba(150,156,148,.4);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:"IBM Plex Mono",ui-monospace,monospace;background:var(--ink);color:var(--cream);
+    line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased;transition:background .4s,color .4s}
+  ::selection{background:var(--amber);color:#1a1207}
+
+  #dither{position:fixed;inset:0;width:100%;height:100%;z-index:0;display:block}
+  .vignette{position:fixed;inset:0;z-index:1;pointer-events:none;
+    background:radial-gradient(120% 90% at 50% 0%,transparent 45%,var(--vig) 100%)}
+
+  /* lidar intro */
+  #lidar{position:fixed;inset:0;width:100%;height:100%;z-index:60;display:block;background:#05070a;transition:opacity 1.2s ease}
+  #intro{position:fixed;inset:0;z-index:61;pointer-events:none;display:flex;flex-direction:column;justify-content:flex-end;
+    padding:clamp(20px,5vw,64px);transition:opacity 1s ease}
+  #intro .phase{font-size:11px;letter-spacing:.32em;text-transform:uppercase;color:#5fb7b0;opacity:.85;margin-bottom:10px;min-height:14px}
+  #intro .snrwrap{display:flex;align-items:center;gap:14px;max-width:420px}
+  #intro .snrbar{flex:1;height:4px;background:rgba(95,183,176,.18);border-radius:2px;overflow:hidden}
+  #intro .snrfill{height:100%;width:2%;background:linear-gradient(90deg,#5fb7b0,#ffac00);border-radius:2px}
+  #intro .snrnum{font-size:12px;color:#aeb9b3;min-width:78px;text-align:right}
+  #skip{position:fixed;top:clamp(16px,4vw,32px);left:clamp(16px,4vw,32px);z-index:62;font:inherit;font-size:11px;
+    letter-spacing:.2em;text-transform:uppercase;color:#aeb9b3;background:transparent;border:1px solid rgba(166,200,193,.25);
+    padding:8px 14px;border-radius:999px;cursor:pointer;transition:.25s}
+  #skip:hover{color:#fff;border-color:#5fb7b0}
+  body.lidar-done #lidar,body.lidar-done #intro,body.lidar-done #skip{opacity:0;pointer-events:none}
+  body.lidar-done #lidar{visibility:hidden}
+  body.intro{overflow:hidden;height:100vh}
+
+  /* self-instrumenting HUD */
+  #hud{position:fixed;top:12px;right:12px;z-index:50;display:flex;align-items:stretch;
+    font-size:10.5px;letter-spacing:.04em;border:1px solid var(--line);border-radius:999px;overflow:hidden;
+    background:var(--glass);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+  #hud .seg{padding:6px 11px;border-right:1px solid var(--line);color:var(--cream-dim);white-space:nowrap}
+  #hud .seg:last-child{border-right:none}
+  #hud b{color:var(--teal-bright);font-weight:600}
+  #hud .sig b{color:var(--amber)}
+  @media(max-width:680px){#hud .opt{display:none}}
+
+  .wrap{position:relative;z-index:5;max-width:1080px;margin:0 auto;padding:0 clamp(18px,4vw,40px)}
+
+  nav{position:sticky;top:14px;z-index:40;margin:50px auto 0;max-width:1080px;display:flex;align-items:center;
+    justify-content:space-between;gap:12px;padding:10px 16px;border-radius:999px;background:var(--glass);
+    backdrop-filter:blur(16px) saturate(140%);-webkit-backdrop-filter:blur(16px) saturate(140%);border:1px solid var(--line)}
+  nav .brand{font-family:"Red Hat Display",system-ui,sans-serif;font-weight:800;letter-spacing:-.01em;font-size:16px;color:var(--cream)}
+  nav .brand span{color:var(--teal-bright)}
+  nav .links{display:flex;gap:12px;align-items:center}
+  nav a{color:var(--cream-dim);text-decoration:none;font-size:12.5px;transition:.2s}
+  nav a:hover{color:var(--cream)}
+  .ib{font:inherit;font-size:12px;line-height:1;color:var(--cream-dim);background:transparent;border:1px solid var(--line);
+    border-radius:999px;height:28px;padding:0 10px;cursor:pointer;transition:.2s;display:inline-flex;align-items:center;gap:6px}
+  .ib:hover{color:var(--cream);border-color:var(--teal-bright)}
+  /* terminal button — subtle amber frosting + reflective sheen to invite interaction */
+  #termBtn{position:relative;overflow:hidden;color:var(--amber);border-color:rgba(255,172,0,.5);
+    background:rgba(255,172,0,.12);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);animation:termGlow 3.4s ease-in-out infinite}
+  #termBtn:hover{color:var(--amber);border-color:var(--amber);background:rgba(255,172,0,.22)}
+  #termBtn::after{content:"";position:absolute;top:0;left:-70%;width:45%;height:100%;pointer-events:none;
+    background:linear-gradient(100deg,transparent,rgba(255,255,255,.42),transparent);transform:skewX(-18deg);animation:termSheen 3.4s ease-in-out infinite}
+  @keyframes termGlow{0%,100%{box-shadow:0 0 0 0 rgba(255,172,0,0)}50%{box-shadow:0 0 13px 0 rgba(255,172,0,.42)}}
+  @keyframes termSheen{0%{left:-70%}28%{left:140%}100%{left:140%}}
+  .lang{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden}
+  .lang button{font:inherit;font-size:11px;letter-spacing:.06em;padding:6px 9px;background:transparent;color:var(--cream-dim);border:none;cursor:pointer;transition:.2s}
+  .lang button.on{background:var(--teal-bright);color:var(--on);font-weight:600}
+  @media(max-width:760px){nav .links a{display:none}}
+
+  header.hero{position:relative;z-index:5;min-height:74vh;display:flex;flex-direction:column;justify-content:center;padding:clamp(50px,10vh,120px) 0 clamp(36px,7vh,80px)}
+  .eyebrow{font-size:12px;letter-spacing:.34em;text-transform:uppercase;color:var(--teal-bright);margin-bottom:20px}
+  h1{font-family:"Red Hat Display",system-ui,sans-serif;font-weight:900;letter-spacing:-.02em;line-height:1.04;
+    font-size:clamp(34px,6.2vw,74px);color:var(--cream);max-width:18ch}
+  h1 .gl{color:var(--red)}
+  .lede{margin-top:24px;max-width:62ch;font-size:clamp(15px,1.7vw,18px);color:var(--cream-dim)}
+  .lede b{color:var(--cream);font-weight:500}
+  .creed{margin-top:28px;display:inline-block;font-size:13px;color:var(--cream);border-left:2px solid var(--amber);padding:4px 0 4px 16px;max-width:66ch}
+  .eyebrow,h1,.lede,.creed,.kicker,h2,.sub,.prose p{text-shadow:0 1px 2px rgba(4,9,8,.7),0 2px 20px rgba(4,9,8,.5)}
+  body.light .eyebrow,body.light h1,body.light .lede,body.light .creed,body.light .kicker,body.light h2,body.light .sub,body.light .prose p{text-shadow:0 1px 1px rgba(255,255,255,.65)}
+
+  .ev{position:relative;color:var(--cream);border-bottom:1px dashed var(--amber);cursor:help;outline:none}
+  .ev .pop{position:absolute;left:0;bottom:140%;z-index:30;width:max-content;max-width:300px;
+    background:var(--glass-strong);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:12px;color:var(--cream-dim);
+    line-height:1.5;box-shadow:0 12px 32px rgba(0,0,0,.4);opacity:0;transform:translateY(6px);pointer-events:none;transition:.18s}
+  .ev .pop b{color:var(--cream)}
+  .ev .pop a{color:var(--teal-bright);text-decoration:none;border-bottom:1px solid var(--teal)}
+  .ev .pop .tag{display:block;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber);margin-bottom:5px}
+  .ev:hover .pop,.ev:focus-within .pop,.ev:focus .pop{opacity:1;transform:none;pointer-events:auto}
+
+  section{position:relative;z-index:5;padding:clamp(40px,7vh,80px) 0}
+  .kicker{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--teal-bright);display:flex;align-items:center;gap:12px;margin-bottom:22px}
+  .kicker::after{content:"";flex:1;height:1px;background:var(--line)}
+  h2{font-family:"Red Hat Display",system-ui,sans-serif;font-weight:800;font-size:clamp(23px,3.2vw,36px);color:var(--cream);letter-spacing:-.015em;max-width:26ch}
+  .sub{color:var(--cream-dim);max-width:66ch;margin-top:12px;font-size:14px}
+
+  .notes{margin-top:28px;display:flex;flex-direction:column;gap:14px}
+  details.note{border-radius:var(--r);overflow:hidden;border:1px solid var(--line);background:var(--glass);
+    backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%);transition:border-color .25s}
+  details.note[open]{border-color:rgba(95,183,176,.45)}
+  details.note summary{list-style:none;cursor:pointer;padding:20px 22px;display:flex;align-items:flex-start;gap:18px}
+  details.note summary::-webkit-details-marker{display:none}
+  .note .idx{font-size:12px;color:var(--red);font-weight:600;min-width:30px;padding-top:3px}
+  .note .ttl{font-family:"Red Hat Display",system-ui,sans-serif;font-weight:700;font-size:clamp(15px,2vw,19px);color:var(--cream);flex:1;line-height:1.28}
+  .note .play{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#06100f;background:var(--amber);padding:3px 8px;border-radius:999px;align-self:center;font-weight:600}
+  .note .chev{color:var(--cream-dim);transition:transform .3s;font-size:18px;line-height:1}
+  details.note[open] .chev{transform:rotate(45deg);color:var(--amber)}
+  .note .body{padding:0 22px 22px 70px;color:var(--cream-dim);font-size:14px}
+  @media(max-width:640px){.note .body{padding-left:22px}}
+  .note .body p{margin-top:10px}
+  .note .body code{background:rgba(95,183,176,.16);color:var(--teal-bright);padding:1px 5px;border-radius:5px;font-size:12.5px}
+  .handshake{margin-top:16px;border-left:2px solid var(--red);background:rgba(217,71,43,.1);padding:11px 15px;border-radius:0 10px 10px 0}
+  .handshake .lbl{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--red);margin-bottom:5px;font-weight:600}
+  .handshake p{margin:0;color:var(--cream)}
+  .prov{margin-top:14px;font-size:11.5px;color:var(--cream-dim)}
+  .prov a{color:var(--teal-bright);text-decoration:none;border-bottom:1px solid var(--teal)}
+
+  .demo{margin-top:16px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#070d0c}
+  .demo .top{display:flex;justify-content:space-between;align-items:center;padding:9px 13px;border-bottom:1px solid var(--line);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--teal-bright)}
+  .demo canvas{display:block;width:100%;height:auto}
+  .demo .dctl{padding:12px 13px;display:flex;flex-direction:column;gap:11px}
+  .demo .dl{display:flex;justify-content:space-between;font-size:11px;color:var(--cream-dim)}
+  .demo .dl b{color:var(--cream)}
+  .demo input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:3px;background:linear-gradient(90deg,var(--teal-bright),var(--amber),var(--red));outline:none}
+  .demo input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--ink);cursor:pointer}
+  .demo input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid var(--ink);cursor:pointer}
+  .demo .drow{display:flex;gap:8px;flex-wrap:wrap}
+  .demo .seg{display:flex;border:1px solid var(--line);border-radius:999px;overflow:hidden;flex:1;min-width:170px}
+  .demo .seg button{flex:1;font:inherit;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;padding:7px 4px;background:transparent;color:var(--cream-dim);border:none;cursor:pointer}
+  .demo .seg button.on{background:var(--teal-bright);color:#06100f;font-weight:600}
+  .demo .db{font:inherit;font-size:11px;padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--amber);color:#1a1207;font-weight:600;cursor:pointer}
+  .demo .verdict{font-size:12px;color:var(--cream);padding:0 13px 13px}
+  .demo .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:10.5px;color:var(--cream-dim);padding:0 13px 12px}
+  .demo .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+  .grid{margin-top:28px;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px;align-items:start}
+  details.card{border-radius:var(--r);background:var(--glass);backdrop-filter:blur(16px) saturate(130%);-webkit-backdrop-filter:blur(16px) saturate(130%);border:1px solid var(--line);transition:transform .3s,border-color .3s}
+  details.card:hover{transform:translateY(-4px);border-color:rgba(95,183,176,.4)}
+  details.card[open]{border-color:rgba(95,183,176,.45);transform:none}
+  details.card summary{list-style:none;cursor:pointer;padding:20px}
+  details.card summary::-webkit-details-marker{display:none}
+  .card .tag{font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--amber)}
+  .card h3{font-family:"Red Hat Display",system-ui,sans-serif;font-weight:700;font-size:17px;color:var(--cream);margin:10px 0 0;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .card h3 .chev{color:var(--cream-dim);font-size:18px;transition:transform .3s}
+  details.card[open] h3 .chev{transform:rotate(45deg);color:var(--amber)}
+  .card .teaser{font-size:13px;color:var(--cream-dim);margin-top:10px}
+  .card .body{padding:0 20px 20px}
+  .card .body p{font-size:13px;color:var(--cream-dim);margin-top:6px}
+  .card .stack{margin-top:14px;font-size:11px;color:var(--teal-bright)}
+  .card .repo{display:inline-block;margin-top:12px;font-size:12px;color:var(--cream);text-decoration:none;border-bottom:1px solid var(--teal)}
+  .card .repo:hover{color:var(--amber);border-color:var(--amber)}
+
+  .duo{margin-top:28px;display:grid;grid-template-columns:1.25fr 1fr;gap:32px;align-items:center}
+  @media(max-width:780px){.duo{grid-template-columns:1fr;gap:32px}}
+  .prose p{color:var(--cream-dim);font-size:14.5px;margin-top:14px;max-width:60ch}
+  .prose p b{color:var(--cream);font-weight:500}
+  .nowpanel{padding:22px;border-radius:var(--r);background:var(--glass-strong);backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%);border:1px solid var(--line)}
+  .status{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--cream)}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--teal-bright);box-shadow:0 0 0 0 rgba(95,183,176,.6);animation:pulse 2.4s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(95,183,176,.5)}70%{box-shadow:0 0 0 9px rgba(95,183,176,0)}100%{box-shadow:0 0 0 0 rgba(95,183,176,0)}}
+  .nowpanel ul{list-style:none;margin-top:14px;display:flex;flex-direction:column;gap:9px}
+  .nowpanel li{font-size:13px;color:var(--cream-dim);display:flex;gap:10px}
+  .nowpanel li span{color:var(--teal-bright)}
+  .contact{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px}
+  .contact a{font-size:12.5px;color:var(--cream);text-decoration:none;padding:10px 15px;border-radius:999px;border:1px solid var(--line);background:var(--glass);transition:.2s}
+  .contact a:hover{border-color:var(--amber);color:var(--amber)}
+
+  .rcol{display:flex;flex-direction:column}
+  .portrait{position:relative;border-radius:var(--r);overflow:hidden;border:1px solid var(--line);
+    background:var(--ink-2);aspect-ratio:1/1;margin-bottom:16px}
+  .portrait img{display:none}
+  .portrait canvas{position:absolute;inset:0;width:100%;height:100%;display:block;cursor:crosshair}
+  .portrait .plabel{position:absolute;left:0;right:0;bottom:0;z-index:3;display:flex;justify-content:space-between;gap:8px;
+    padding:8px 12px;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:#eaf2ef;pointer-events:none;
+    background:linear-gradient(0deg,rgba(5,10,9,.72),transparent)}
+  .portrait .plabel .phint{color:var(--teal-bright)}
+  body.raw .portrait canvas{display:none}
+
+  .log{margin-top:28px;border-left:1px solid var(--line);padding-left:20px;display:flex;flex-direction:column;gap:14px}
+  .log .v{position:relative}
+  .log .v::before{content:"";position:absolute;left:-25px;top:5px;width:9px;height:9px;border-radius:50%;background:var(--teal-bright)}
+  .log .vh{font-size:12px;color:var(--cream);font-weight:600}
+  .log .vh span{color:var(--amber);margin-right:8px}
+  .log .vd{font-size:12.5px;color:var(--cream-dim);margin-top:3px}
+
+  footer{position:relative;z-index:5;padding:46px 0 64px;border-top:1px solid var(--line);margin-top:28px}
+  footer .row{display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;font-size:12px;color:var(--cream-dim)}
+  footer .row b{color:var(--cream);font-weight:500}
+
+  #term{position:fixed;inset:0;z-index:80;background:rgba(5,9,8,.96);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+    display:none;flex-direction:column;padding:clamp(16px,4vw,40px);font-size:13.5px;line-height:1.65;color:#bfe9e2}
+  #term.show{display:flex}
+  #term .scr{flex:1;overflow:auto;white-space:pre-wrap;word-break:break-word}
+  #term .out span.p{color:var(--amber)}
+  #term .out span.c{color:var(--teal-bright)}
+  #term .inl{display:flex;gap:8px;align-items:center;border-top:1px solid rgba(95,183,176,.25);padding-top:12px;margin-top:8px}
+  #term .inl .ps{color:var(--amber)}
+  #term .inl input{flex:1;background:transparent;border:none;outline:none;color:#eafffb;font:inherit}
+  #term .x{position:absolute;top:14px;right:18px;color:#6f857f;cursor:pointer;font-size:12px;letter-spacing:.1em}
+
+  @media(prefers-reduced-motion:reduce){.dot{animation:none}#termBtn{animation:none}#termBtn::after{display:none}}
+</style>
+</head>
+<body class="intro">
+
+  <canvas id="dither"></canvas>
+  <div class="vignette"></div>
+
+  <canvas id="lidar"></canvas>
+  <div id="intro">
+    <div class="phase" id="phaseTxt">acquiring &middot; raw returns</div>
+    <div class="snrwrap">
+      <div class="snrbar"><div class="snrfill" id="snrFill"></div></div>
+      <div class="snrnum" id="snrNum">SNR 0.00</div>
+    </div>
+  </div>
+  <button id="skip" data-i18n="skipBtn">Skip intro</button>
+
+  <div id="hud">
+    <div class="seg">fps <b id="hFps">–</b></div>
+    <div class="seg opt">doc <b id="hKb">–</b></div>
+    <div class="seg sig">signal <b id="hSig">12%</b></div>
+  </div>
+
+  <nav>
+    <div class="brand">TM<span>.</span></div>
+    <div class="links">
+      <a href="#notes" data-i18n="navNotes">Field notes</a>
+      <a href="#work" data-i18n="navWork">Work</a>
+      <a href="#about" data-i18n="navAbout">About</a>
+      <a href="#log" data-i18n="navLog">Build log</a>
+      <div class="lang" id="lang"><button data-l="en" class="on">EN</button><button data-l="de">DE</button></div>
+      <button class="ib" id="themeBtn" title="light / dark">◐</button>
+      <button class="ib" id="termBtn" title="terminal résumé">&gt;_ raw</button>
+    </div>
+  </nav>
+
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow" data-i18n="heroEyebrow">Perception &middot; Control &middot; Vehicle Dynamics</div>
+      <h1 data-i18n="heroH1">I build autonomous systems to understand their <span class="gl">failure modes</span>.</h1>
+      <p class="lede" data-i18n="heroLede"><b>Tapan Mehta</b> — M.Sc. Commercial Vehicle Technology, RPTU Kaiserslautern. I work where <span class="ev" tabindex="0">vehicle dynamics<span class="pop"><span class="tag">evidence</span><b>Tire &amp; handling sim</b> — Pacejka / friction ellipse in MSC Adams &amp; Simulink. <a href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">repo →</a></span></span>, <span class="ev" tabindex="0">perception<span class="pop"><span class="tag">evidence</span><b>Motion prediction</b> — LSTM/GRU vs Kalman/IMM on inD. <a href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">repo →</a></span></span>, control and software meet. The understanding isn't real to me until I can explain the failure mode to someone else.</p>
+      <span class="creed" data-i18n="heroCreed">I treat tools, processes and interactions the way an engineer treats system performance &mdash; minimize overhead, maximize signal.</span>
+    </header>
+  </div>
+
+  <div class="wrap">
+    <section id="notes">
+      <div class="kicker" data-i18n="nKicker">Field notes</div>
+      <h2 data-i18n="nH2">The kind of thing you only learn by doing it &mdash;</h2>
+      <p class="sub" data-i18n="nSub">Open any of them. Note 01 is <b>playable</b> — break the filter yourself. Hover the dashed terms anywhere for their evidence.</p>
+
+      <div class="notes">
+        <details class="note" id="n01">
+          <summary><span class="idx">01</span><span class="ttl" data-i18n="n1t">Why a Kalman filter quietly fails at a crosswalk</span><span class="play" data-i18n="nPlay">play</span><span class="chev">+</span></summary>
+          <div class="body">
+            <p data-i18n="n1p">A Kalman/EKF carries a single Gaussian belief — structurally <b>unimodal</b>. A pedestrian at a curb is genuinely bimodal: wait or cross. To cover both, the filter must center on the gap between them — a confident prediction of a spot no one occupies. Drag the slider:</p>
+
+            <div class="demo">
+              <div class="top"><span data-i18n="dTop">Crosswalk · Kalman vs IMM</span><span id="dCap" style="color:var(--amber)">ambiguous</span></div>
+              <canvas id="dC" width="560" height="300"></canvas>
+              <div class="dctl">
+                <div class="dl"><span data-i18n="dIntentLab">Pedestrian intent</span><b id="dPlab">p(cross) = 0.50</b></div>
+                <input id="dP" type="range" min="0" max="100" value="50" />
+                <div class="drow">
+                  <div class="seg" id="dSeg">
+                    <button data-m="kf">Kalman</button><button data-m="imm">IMM</button><button data-m="both" class="on" data-i18n="dBoth">Both</button>
+                  </div>
+                  <button class="db" id="dSample" data-i18n="dSampleBtn">▶ sample</button>
+                </div>
+              </div>
+              <div class="verdict" id="dVerd"></div>
+              <div class="legend"><span><i style="background:#fff"></i><span data-i18n="legTruth">truth</span></span><span><i style="background:var(--amber)"></i>Kalman</span><span><i style="background:var(--teal-bright)"></i><span data-i18n="legWait">IMM·wait</span></span><span><i style="background:var(--red)"></i><span data-i18n="legCross">IMM·cross</span></span></div>
+            </div>
+
+            <div class="handshake"><div class="lbl" data-i18n="hsLbl">The handshake</div><p data-i18n="n1hs">It fails <i>silently</i> — NIS/innovation gates keep passing because the mean sits plausibly in the gap. You catch it the first time you overlay the multimodal ground truth and see a path no agent ever took.</p></div>
+            <div class="prov" data-i18n="n1prov">Built from: <a href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">Motion prediction · inD →</a></div>
+          </div>
+        </details>
+
+        <details class="note">
+          <summary><span class="idx">02</span><span class="ttl" data-i18n="n2t">A cloud passing the window broke my 3D-printer watchdog</span><span class="chev">+</span></summary>
+          <div class="body">
+            <p data-i18n="n2p">My dual-camera detector scored frames with <b>SSIM</b> — luminance × contrast × structure. The luminance term reacts to global illumination. A cloud dropped ambient light across the bed, SSIM fell under threshold, and it paused a healthy print as a defect.</p>
+            <div class="handshake"><div class="lbl" data-i18n="hsLbl">The handshake</div><p data-i18n="n2hs">A lower threshold just trades false alarms for misses. Fix it upstream: pin the illumination, normalize exposure, or run blob/ROI detection on the part itself.</p></div>
+            <div class="prov" data-i18n="n2prov">Built from: <a href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">3D-print anomaly watchdog →</a></div>
+          </div>
+        </details>
+
+        <details class="note">
+          <summary><span class="idx">03</span><span class="ttl" data-i18n="n3t">Why peak grip isn't at zero slip</span><span class="chev">+</span></summary>
+          <div class="body">
+            <p data-i18n="n3p">The Pacejka curve peaks at a few percent slip, then falls — max grip is at <i>nonzero</i> slip. Longitudinal and lateral force share the <b>friction ellipse</b>, which is why trail-braking keeps the contact patch near its peak through the arc.</p>
+            <div class="handshake"><div class="lbl" data-i18n="hsLbl">The handshake</div><p data-i18n="n3hs">A controller targeting zero slip leaves grip on the table. ABS/TC hunt the peak and live just past it.</p></div>
+            <div class="prov" data-i18n="n3prov">Built from: <a href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">Tire &amp; handling sim →</a></div>
+          </div>
+        </details>
+
+        <details class="note">
+          <summary><span class="idx">04</span><span class="ttl" data-i18n="n4t">Your ROS 2 nodes are dropping messages and not telling you</span><span class="chev">+</span></summary>
+          <div class="body">
+            <p data-i18n="n4p">DDS QoS must be compatible or pub/sub never connect — and nothing throws. <code>BEST_EFFORT</code> + shallow <code>KEEP_LAST</code> drops under load; a <code>RELIABLE</code> sub won't match a <code>BEST_EFFORT</code> pub at all.</p>
+            <div class="handshake"><div class="lbl" data-i18n="hsLbl">The handshake</div><p data-i18n="n4hs">​<code>ros2 topic echo</code> shows data because it negotiates its own QoS — not your node's. Trust <code>ros2 topic info -v</code> matched counts; set an explicit <code>SensorDataQoS</code>.</p></div>
+            <div class="prov" data-i18n="n4prov">From the field — ROS 2 / DDS integration work.</div>
+          </div>
+        </details>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section id="work">
+      <div class="kicker" data-i18n="wKicker">Work / artifacts</div>
+      <h2 data-i18n="wH2">Things I built — mostly to understand them.</h2>
+      <p class="sub" data-i18n="wSub">Every card carries its receipt: open it for the repo.</p>
+      <div class="grid">
+        <details class="card"><summary><div class="tag" data-i18n="c1tag">Perception &middot; ML</div><h3><span data-i18n="c1h">Motion prediction</span> <span class="chev">+</span></h3><p class="teaser" data-i18n="c1teas">LSTM/GRU vs Kalman/IMM on the inD dataset.</p></summary><div class="body"><p data-i18n="c1body">Recurrent trajectory prediction benchmarked against Kalman/IMM baselines on inD. The project behind note 01.</p><div class="stack">PyTorch · inD · Kalman/IMM</div><br><a class="repo" data-i18n="cRepo" href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">View on GitHub →</a></div></details>
+        <details class="card"><summary><div class="tag" data-i18n="c2tag">CV &middot; Embedded</div><h3><span data-i18n="c2h">3D-print anomaly watchdog</span> <span class="chev">+</span></h3><p class="teaser" data-i18n="c2teas">Dual-camera defect detection on a Raspberry Pi 5.</p></summary><div class="body"><p data-i18n="c2body">Two OV5647 cameras, SSIM + blob/ROI, OctoPrint API, Telegram alerts. The project behind note 02.</p><div class="stack">RPi 5 · OpenCV · OctoPrint</div><br><a class="repo" data-i18n="cRepo" href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">View on GitHub →</a></div></details>
+        <details class="card"><summary><div class="tag" data-i18n="c3tag">Vehicle dynamics</div><h3><span data-i18n="c3h">Tire &amp; handling sim</span> <span class="chev">+</span></h3><p class="teaser" data-i18n="c3teas">Pacejka behaviour in MSC Adams &amp; Simulink.</p></summary><div class="body"><p data-i18n="c3body">Pacejka tire curves, friction ellipse, combined slip. The physics behind note 03.</p><div class="stack">Adams Car · MATLAB/Simulink</div><br><a class="repo" data-i18n="cRepo" href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">View on GitHub →</a></div></details>
+        <details class="card"><summary><div class="tag" data-i18n="c4tag">Flutter &middot; Local-first</div><h3><span data-i18n="c4h">Cockpit</span> <span class="chev">+</span></h3><p class="teaser" data-i18n="c4teas">Local-first finance app. Privacy by architecture.</p></summary><div class="body"><p data-i18n="c4body">Argon2id, SQLCipher, Drift, Riverpod on a Bauhaus system. No server to trust.</p><div class="stack">Flutter · SQLCipher · Drift</div><br><a class="repo" data-i18n="cRepo" href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">View on GitHub →</a></div></details>
+        <details class="card"><summary><div class="tag" data-i18n="c5tag">PWA &middot; Tooling</div><h3><span data-i18n="c5h">Daily Blueprint / DayFrame</span> <span class="chev">+</span></h3><p class="teaser" data-i18n="c5teas">A life-OS PWA / Flutter app.</p></summary><div class="body"><p data-i18n="c5body">"Minimize overhead, maximize signal" applied to a day: structure without ceremony.</p><div class="stack">Flutter · PWA</div><br><a class="repo" data-i18n="cRepo" href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">View on GitHub →</a></div></details>
+        <details class="card"><summary><div class="tag" data-i18n="c6tag">Web &middot; Canvas</div><h3><span data-i18n="c6h">This portfolio</span> <span class="chev">+</span></h3><p class="teaser" data-i18n="c6teas">A page that argues its own thesis.</p></summary><div class="body"><p data-i18n="c6body">Playable failure modes, a provenance layer, a self-instrumenting HUD, a terminal résumé. Signal over noise, demonstrated.</p><div class="stack">Canvas · zero build</div><br><a class="repo" data-i18n="cRepo" href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">View on GitHub →</a></div></details>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section id="about">
+      <div class="kicker" data-i18n="aKicker">About / Now</div>
+      <div class="duo">
+        <div class="prose">
+          <h2 data-i18n="aH2">Competence is demonstrated, not declared.</h2>
+          <p data-i18n="aP1">Undergrad in <b>mechanical engineering</b>, now an M.Sc. in <b>Commercial Vehicle Technology</b> at RPTU. Core ground: ADAS, <span class="ev" tabindex="0">sensor fusion<span class="pop"><span class="tag">evidence</span><b>Motion prediction</b> + ROS 2 perception stacks. <a href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">repo →</a></span></span>, <span class="ev" tabindex="0">ROS 2<span class="pop"><span class="tag">evidence</span>DDS QoS debugging — field note 04.</span></span>, motion prediction, vehicle-dynamics simulation, MATLAB/Simulink, CAN, PyTorch, embedded and CV. Two-plus years C#/Unity; building in Flutter now.</p>
+          <p data-i18n="aP2">I keep my claims honest — I cut the skills I haven't shipped. Hover anything dashed and it shows its receipt. I'd rather earn the expert's nod than the crowd's click.</p>
+        </div>
+        <div class="rcol">
+        <div class="portrait" id="portrait">
+          <img id="pImg" alt="Tapan Mehta — Kaiserslautern" />
+          <canvas id="pCv"></canvas>
+          <div class="plabel"><span data-i18n="pLabel">subject · T. Mehta</span><span class="phint" data-i18n="pHint">hover to resolve →</span></div>
+        </div>
+        <div class="nowpanel" id="now">
+          <div class="status"><span class="dot"></span> <span data-i18n="nowStatus">Open to a Pflichtpraktikum</span></div>
+          <ul>
+            <li><span>↳</span> <span data-i18n="nowLi1">ADAS / AD / vehicle-dynamics sim / robotics / applied ML for automotive.</span></li>
+            <li><span>↳</span> <span data-i18n="nowLi2">Werkstudent at Deutsche Post AG, Kaiserslautern — mobile across Germany.</span></li>
+          </ul>
+          <div class="contact">
+            <a href="mailto:tpmehta129@gmail.com" data-i18n="cEmail">✉ Email</a>
+            <a href="https://www.linkedin.com/in/mehta-tapan/" target="_blank" rel="noopener">in · LinkedIn</a>
+            <a href="https://github.com/tednic129?tab=repositories" target="_blank" rel="noopener">› GitHub</a>
+          </div>
+        </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <section id="log">
+      <div class="kicker" data-i18n="lKicker">Build log</div>
+      <h2 data-i18n="lH2">The site is an engineering artifact too.</h2>
+      <div class="log">
+        <div class="v"><div class="vh"><span>v0.4</span><span data-i18n="l4h">playable note 01</span></div><div class="vd" data-i18n="l4d">Embedded the Kalman-vs-IMM crosswalk demo inline — you break the filter yourself.</div></div>
+        <div class="v"><div class="vh"><span>v0.3</span><span data-i18n="l3h">provenance layer</span></div><div class="vd" data-i18n="l3d">Every claim now carries a hover receipt: the project and repo behind it.</div></div>
+        <div class="v"><div class="vh"><span>v0.2</span><span data-i18n="l2h">self-instrumenting HUD</span></div><div class="vd" data-i18n="l2d">Live FPS + document weight + a signal meter that rises as you engage.</div></div>
+        <div class="v"><div class="vh"><span>v0.1</span><span data-i18n="l1h">terminal résumé</span></div><div class="vd" data-i18n="l1d">A real <code>&gt;_</code> mode — plaintext, command-driven. Minimize overhead, made literal.</div></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="wrap">
+    <footer>
+      <div class="row">
+        <span data-i18n="f1">Tapan Mehta — Kaiserslautern, DE · open to a Pflichtpraktikum</span>
+        <span data-i18n="f2"><b>signal</b> over noise · try the <b>&gt;_ raw</b> terminal</span>
+      </div>
+    </footer>
+  </div>
+
+  <div id="term">
+    <span class="x" id="termX">[ esc ] close</span>
+    <div class="scr"><div class="out" id="termOut"></div>
+      <div class="inl"><span class="ps">tapan@portfolio:~$</span><input id="termIn" autocomplete="off" spellcheck="false" /></div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion:reduce)").matches;
+  window.__LANG="en";
+
+  /* ===== i18n (German dictionary; English stays inline) ===== */
+  var DE={
+    skipBtn:"Intro überspringen",
+    navNotes:"Feldnotizen", navWork:"Projekte", navAbout:"Über mich", navLog:"Änderungslog",
+    heroEyebrow:"Wahrnehmung &middot; Regelung &middot; Fahrdynamik",
+    heroH1:"Ich baue autonome Systeme, um ihre <span class=\"gl\">Fehlermodi</span> zu verstehen.",
+    heroLede:"<b>Tapan Mehta</b> — M.Sc. Nutzfahrzeugtechnik, RPTU Kaiserslautern. Ich arbeite dort, wo <span class=\"ev\" tabindex=\"0\">Fahrdynamik<span class=\"pop\"><span class=\"tag\">beleg</span><b>Reifen- &amp; Fahrverhaltens-Sim</b> — Pacejka / Reibellipse in MSC Adams &amp; Simulink. <a href=\"https://github.com/tednic129?tab=repositories\" target=\"_blank\" rel=\"noopener\">repo →</a></span></span>, <span class=\"ev\" tabindex=\"0\">Wahrnehmung<span class=\"pop\"><span class=\"tag\">beleg</span><b>Bewegungsvorhersage</b> — LSTM/GRU vs. Kalman/IMM auf inD. <a href=\"https://github.com/tednic129?tab=repositories\" target=\"_blank\" rel=\"noopener\">repo →</a></span></span>, Regelung und Software zusammentreffen. Verstanden habe ich es erst, wenn ich den Fehlermodus jemandem erklären kann.",
+    heroCreed:"Ich behandle Werkzeuge, Prozesse und Interaktionen wie ein Ingenieur die Systemleistung &mdash; Overhead minimieren, Signal maximieren.",
+    nKicker:"Feldnotizen",
+    nH2:"Dinge, die man nur durch eigenes Tun lernt &mdash;",
+    nSub:"Öffne eine beliebige. Notiz 01 ist <b>spielbar</b> — bring den Filter selbst zum Scheitern. Fahre über die gestrichelten Begriffe für ihre Belege.",
+    n1t:"Warum ein Kalman-Filter am Zebrastreifen still versagt", nPlay:"spielbar",
+    n1p:"Ein Kalman-/EKF trägt eine einzige Gauß-Annahme — strukturell <b>unimodal</b>. Ein Fußgänger am Bordstein ist echt bimodal: warten oder queren. Um beides abzudecken, muss der Filter auf die Lücke dazwischen zentrieren — eine selbstbewusste Vorhersage für einen Ort, den niemand einnimmt. Zieh den Regler:",
+    dTop:"Zebrastreifen · Kalman vs. IMM", dIntentLab:"Absicht des Fußgängers", dBoth:"Beide", dSampleBtn:"▶ Stichprobe",
+    legTruth:"Wahrheit", legWait:"IMM·warten", legCross:"IMM·queren",
+    hsLbl:"Die Tücke",
+    n1hs:"Es versagt <i>lautlos</i> — NIS-/Innovations-Gates bleiben grün, weil der Mittelwert plausibel in der Lücke liegt. Du merkst es erst, wenn du die multimodale Ground Truth überlagerst und einen Pfad siehst, den kein Verkehrsteilnehmer je genommen hat.",
+    n1prov:"Basiert auf: <a href=\"https://github.com/tednic129?tab=repositories\" target=\"_blank\" rel=\"noopener\">Bewegungsvorhersage · inD →</a>",
+    n2t:"Eine Wolke vor dem Fenster legte meinen 3D-Drucker-Watchdog lahm",
+    n2p:"Mein Zwei-Kamera-Detektor bewertete Bilder mit <b>SSIM</b> — Helligkeit × Kontrast × Struktur. Der Helligkeitsterm reagiert auf globale Beleuchtung. Eine Wolke senkte das Umgebungslicht über dem Druckbett, SSIM fiel unter die Schwelle, und ein gesunder Druck wurde als Defekt pausiert.",
+    n2hs:"Eine niedrigere Schwelle tauscht nur Fehlalarme gegen Übersehen. Behebe es an der Quelle: Beleuchtung fixieren, Belichtung normalisieren oder Blob-/ROI-Erkennung am Bauteil selbst laufen lassen.",
+    n2prov:"Basiert auf: <a href=\"https://github.com/tednic129?tab=repositories\" target=\"_blank\" rel=\"noopener\">3D-Druck-Anomalie-Watchdog →</a>",
+    n3t:"Warum maximaler Grip nicht bei null Schlupf liegt",
+    n3p:"Die Pacejka-Kurve erreicht ihr Maximum bei wenigen Prozent Schlupf und fällt dann — maximaler Grip liegt bei <i>Schlupf ungleich null</i>. Längs- und Querkraft teilen sich die <b>Reibellipse</b> (Kammscher Kreis), weshalb Trail-Braking den Latsch über die Kurve nahe seinem Maximum hält.",
+    n3hs:"Ein Regler, der null Schlupf anstrebt, verschenkt Grip. ABS/ASR suchen das Maximum und arbeiten knapp dahinter.",
+    n3prov:"Basiert auf: <a href=\"https://github.com/tednic129?tab=repositories\" target=\"_blank\" rel=\"noopener\">Reifen- &amp; Fahrverhaltens-Sim →</a>",
+    n4t:"Deine ROS-2-Nodes verlieren Nachrichten — und sagen es dir nicht",
+    n4p:"DDS-QoS muss kompatibel sein, sonst verbinden sich Publisher/Subscriber nie — und nichts wirft einen Fehler. <code>BEST_EFFORT</code> + flaches <code>KEEP_LAST</code> verliert unter Last; ein <code>RELIABLE</code>-Subscriber passt zu einem <code>BEST_EFFORT</code>-Publisher gar nicht.",
+    n4hs:"<code>ros2 topic echo</code> zeigt Daten, weil es seine eigene QoS aushandelt — nicht die deines Nodes. Vertraue den matched-Zählern aus <code>ros2 topic info -v</code>; setze eine explizite <code>SensorDataQoS</code>.",
+    n4prov:"Aus der Praxis — ROS-2-/DDS-Integrationsarbeit.",
+    wKicker:"Projekte / Artefakte", wH2:"Dinge, die ich gebaut habe — meist, um sie zu verstehen.",
+    wSub:"Jede Karte trägt ihren Beleg: öffne sie für das Repository.",
+    c1tag:"Wahrnehmung &middot; ML", c1h:"Bewegungsvorhersage", c1teas:"LSTM/GRU vs. Kalman/IMM auf dem inD-Datensatz.",
+    c1body:"Rekurrente Trajektorienvorhersage, verglichen mit Kalman/IMM-Baselines auf inD. Das Projekt hinter Notiz 01.",
+    c2tag:"CV &middot; Embedded", c2h:"3D-Druck-Anomalie-Watchdog", c2teas:"Zwei-Kamera-Defekterkennung auf einem Raspberry Pi 5.",
+    c2body:"Zwei OV5647-Kameras, SSIM + Blob/ROI, OctoPrint-API, Telegram-Alerts. Das Projekt hinter Notiz 02.",
+    c3tag:"Fahrdynamik", c3h:"Reifen- &amp; Fahrverhaltens-Sim", c3teas:"Pacejka-Verhalten in MSC Adams &amp; Simulink.",
+    c3body:"Pacejka-Reifenkurven, Reibellipse, kombinierter Schlupf. Die Physik hinter Notiz 03.",
+    c4tag:"Flutter &middot; Local-first", c4h:"Cockpit", c4teas:"Local-first-Finanz-App. Datenschutz durch Architektur.",
+    c4body:"Argon2id, SQLCipher, Drift, Riverpod auf einem Bauhaus-System. Kein Server, dem man vertrauen muss.",
+    c5tag:"PWA &middot; Tooling", c5h:"Daily Blueprint / DayFrame", c5teas:"Eine Life-OS-PWA / Flutter-App.",
+    c5body:"„Overhead minimieren, Signal maximieren“ auf einen Tag angewandt: Struktur ohne Zeremonie.",
+    c6tag:"Web &middot; Canvas", c6h:"Dieses Portfolio", c6teas:"Eine Seite, die ihre eigene These belegt.",
+    c6body:"Spielbare Fehlermodi, eine Herkunfts-Ebene, ein selbstmessendes HUD, ein Terminal-Lebenslauf. Signal über Rauschen, demonstriert.",
+    cRepo:"Auf GitHub ansehen →",
+    aKicker:"Über mich / Aktuell", aH2:"Kompetenz wird gezeigt, nicht behauptet.",
+    aP1:"Bachelor in <b>Maschinenbau</b>, jetzt M.Sc. <b>Nutzfahrzeugtechnik</b> an der RPTU. Kernfelder: ADAS, <span class=\"ev\" tabindex=\"0\">Sensorfusion<span class=\"pop\"><span class=\"tag\">beleg</span><b>Bewegungsvorhersage</b> + ROS-2-Wahrnehmungs-Stacks. <a href=\"https://github.com/tednic129?tab=repositories\" target=\"_blank\" rel=\"noopener\">repo →</a></span></span>, <span class=\"ev\" tabindex=\"0\">ROS 2<span class=\"pop\"><span class=\"tag\">beleg</span>DDS-QoS-Debugging — Feldnotiz 04.</span></span>, Bewegungsvorhersage, Fahrdynamik-Simulation, MATLAB/Simulink, CAN, PyTorch, Embedded und CV. Über zwei Jahre C#/Unity; aktuell mit Flutter.",
+    aP2:"Ich halte meine Angaben ehrlich — Skills, die ich nicht geliefert habe, habe ich gestrichen. Fahre über alles Gestrichelte, und es zeigt seinen Beleg. Mir ist das Nicken der Fachleute lieber als der Klick der Masse.",
+    nowStatus:"Offen für ein Pflichtpraktikum",
+    nowLi1:"ADAS / AD / Fahrdynamik-Sim / Robotik / angewandtes ML für die Automobilbranche.",
+    nowLi2:"Werkstudent bei der Deutsche Post AG, Kaiserslautern — bundesweit mobil.",
+    cEmail:"✉ E-Mail",
+    pLabel:"Person · T. Mehta", pHint:"zum Auflösen bewegen →",
+    lKicker:"Änderungslog", lH2:"Auch die Seite ist ein Engineering-Artefakt.",
+    l4h:"spielbare Notiz 01", l4d:"Die Kalman-vs.-IMM-Zebrastreifen-Demo inline eingebettet — du bringst den Filter selbst zum Scheitern.",
+    l3h:"Herkunfts-Ebene", l3d:"Jede Aussage trägt jetzt einen Hover-Beleg: das Projekt und Repo dahinter.",
+    l2h:"selbstmessendes HUD", l2d:"Live-FPS + Dokumentgröße + eine Signalanzeige, die mit deiner Interaktion steigt.",
+    l1h:"Terminal-Lebenslauf", l1d:"Ein echter <code>&gt;_</code>-Modus — Klartext, befehlsgesteuert. Overhead minimieren, wörtlich genommen.",
+    f1:"Tapan Mehta — Kaiserslautern, DE · offen für ein Pflichtpraktikum",
+    f2:"<b>Signal</b> über Rauschen · probier das <b>&gt;_ raw</b>-Terminal"
+  };
+  var i18nEls=document.querySelectorAll("[data-i18n]");
+  i18nEls.forEach(function(el){ el._en=el.innerHTML; });
+  function setLang(l){
+    window.__LANG=l; document.documentElement.lang=l;
+    i18nEls.forEach(function(el){ var k=el.getAttribute("data-i18n");
+      if(l==="de"){ if(DE[k]!=null) el.innerHTML=DE[k]; } else if(el._en!=null){ el.innerHTML=el._en; } });
+    if(window.__demoRefresh) window.__demoRefresh();
+  }
+  document.getElementById("lang").addEventListener("click",function(ev){
+    var b=ev.target.closest("button"); if(!b) return;
+    this.querySelectorAll("button").forEach(function(x){x.classList.toggle("on",x===b);});
+    setLang(b.getAttribute("data-l"));
+  });
+
+  /* ===== dither background (deferred until intro ends) ===== */
+  var bg=document.getElementById("dither"), bgx=bg.getContext("2d");
+  var CELL=8, cols=0, rows=0, off=null, offx=null, img=null, W=0, H=0, DPR=1;
+  var B=[ 0,48,12,60,3,51,15,63,32,16,44,28,35,19,47,31,8,56,4,52,11,59,7,55,
+          40,24,36,20,43,27,39,23,2,50,14,62,1,49,13,61,34,18,46,30,33,17,45,29,
+          10,58,6,54,9,57,5,53,42,26,38,22,41,25,37,21];
+  for(var i=0;i<64;i++){ B[i]=(B[i]+0.5)/64; }
+  var RAMP_DK=[[11,17,15],[18,33,31],[29,56,54],[45,84,80],[95,150,143]];
+  var RAMP_LT=[[237,239,234],[223,229,223],[206,217,210],[186,205,198],[152,183,175]];
+  var SIG_DK=[84,146,140], SIG_LT=[120,170,162], ACC=[255,172,0];
+  var ptr={x:0.5,y:0.4,energy:0.15,lastMove:0}, lastF=0, ditherRunning=false;
+  function rzBG(){
+    W=window.innerWidth||800; H=window.innerHeight||600; if(W<2)W=800; if(H<2)H=600;
+    DPR=Math.min(window.devicePixelRatio||1,1.5);
+    bg.width=Math.round(W*DPR); bg.height=Math.round(H*DPR); bg.style.width=W+"px"; bg.style.height=H+"px";
+    cols=Math.ceil(W/CELL)+1; rows=Math.ceil(H/CELL)+1;
+    off=document.createElement("canvas"); off.width=cols; off.height=rows; offx=off.getContext("2d"); img=offx.createImageData(cols,rows);
+  }
+  function drawBG(t){
+    requestAnimationFrame(drawBG);
+    measureFps(t);
+    if(!ditherRunning) return;
+    if(t-lastF<32) return; lastF=t;
+    if(cols<2){ rzBG(); if(cols<2) return; }
+    var light=document.body.classList.contains("light");
+    var RAMP=light?RAMP_LT:RAMP_DK, SIG=light?SIG_LT:SIG_DK, NR=RAMP.length, data=img.data;
+    var px=ptr.x*cols, py=ptr.y*rows, idle=(t-ptr.lastMove)>1400, lcx,lcy;
+    if(idle){ lcx=(0.5+0.32*Math.sin(t*0.00037))*cols; lcy=(0.42+0.26*Math.sin(t*0.00029+1.3))*rows; } else { lcx=px; lcy=py; }
+    var R=(cols*0.16)+ptr.energy*cols*0.10, R2=R*R, k=0;
+    for(var y=0;y<rows;y++) for(var x=0;x<cols;x++){
+      var v=0.34+0.16*Math.sin((x*0.05)+(y*0.045)+t*0.00045)+0.10*Math.sin((x*0.018)-(y*0.03)-t*0.0003)+0.06*Math.sin((y*0.09)+t*0.0006);
+      var dx=x-lcx, dy=y-lcy, d2=dx*dx+dy*dy, lock=0;
+      if(d2<R2){ lock=1-(d2/R2); lock=lock*lock; }
+      v+=lock*0.38; if(v<0)v=0; if(v>1)v=0.999;
+      var thr=B[(x&7)*8+(y&7)], lvl=v*NR, idx=Math.floor(lvl);
+      if((lvl-idx)>thr) idx++; if(idx>NR-1) idx=NR-1;
+      var c=RAMP[idx], r=c[0], g=c[1], b=c[2];
+      if(lock>0.62){ var m=(lock-0.62)/0.38*0.7; r+=(SIG[0]-r)*m; g+=(SIG[1]-g)*m; b+=(SIG[2]-b)*m;
+        if(((x*9+y*13)&63)===((Math.floor(t*0.008))&63) && lock>0.92){ r=ACC[0];g=ACC[1];b=ACC[2]; } }
+      data[k]=r; data[k+1]=g; data[k+2]=b; data[k+3]=255; k+=4;
+    }
+    offx.putImageData(img,0,0); bgx.imageSmoothingEnabled=false; bgx.setTransform(DPR,0,0,DPR,0,0);
+    bgx.clearRect(0,0,W,H); bgx.drawImage(off,0,0,cols,rows,0,0,cols*CELL,rows*CELL);
+    if((t-ptr.lastMove)>120) ptr.energy*=0.96; if(ptr.energy<0.12) ptr.energy=0.12;
+  }
+  function mv(cx,cy,t){ var nx=cx/W,ny=cy/H,d=Math.abs(nx-ptr.x)+Math.abs(ny-ptr.y); ptr.x=nx;ptr.y=ny;ptr.lastMove=t||performance.now(); ptr.energy=Math.min(1,ptr.energy+d*2.2+0.05); }
+  window.addEventListener("mousemove",function(e){mv(e.clientX,e.clientY,performance.now());},{passive:true});
+  window.addEventListener("resize",rzBG);
+  rzBG(); requestAnimationFrame(drawBG);
+
+  /* ===== HUD ===== */
+  var hFps=document.getElementById("hFps"), hKb=document.getElementById("hKb"), hSig=document.getElementById("hSig");
+  var fAcc=0, fN=0, fLast=0;
+  function measureFps(t){ if(fLast){ fAcc+=t-fLast; fN++; if(fN>=20){ hFps.textContent=Math.round(1000/(fAcc/fN)); fAcc=0; fN=0; } } fLast=t; }
+  (function(){ try{ var kb=(new Blob([document.documentElement.outerHTML]).size/1024); hKb.textContent=kb.toFixed(0)+"KB"; }catch(e){ hKb.textContent="—"; } })();
+  var engaged={}, signal=12;
+  function bump(id,amt){ if(engaged[id]) return; engaged[id]=1; signal=Math.min(100,signal+amt); }
+  function refreshSig(){ var den=(document.body.scrollHeight-window.innerHeight)||1; var sc=Math.min(1,window.scrollY/den); hSig.textContent=Math.min(100,Math.round(signal+sc*26))+"%"; }
+  window.addEventListener("scroll",refreshSig,{passive:true});
+
+  /* ===== lidar intro ===== */
+  var lc=document.getElementById("lidar"), lx=lc.getContext("2d"), LW=0,LH=0,LDPR=1;
+  function rzL(){ LW=window.innerWidth||800; LH=window.innerHeight||600; if(LW<2)LW=800; if(LH<2)LH=600;
+    LDPR=Math.min(window.devicePixelRatio||1,1.5); lc.width=Math.round(LW*LDPR); lc.height=Math.round(LH*LDPR);
+    lc.style.width=LW+"px"; lc.style.height=LH+"px"; lx.setTransform(LDPR,0,0,LDPR,0,0); }
+  rzL(); window.addEventListener("resize",rzL);
+  var pts=[];
+  function PT(x,y,z,base){ pts.push({x:x,y:y,z:z,base:base,s:Math.random()*6.283,jx:(Math.random()-0.5),jy:(Math.random()-0.5)*0.4,jz:(Math.random()-0.5)}); }
+  for(var lr=1; lr<=12; lr++){ var rad=lr*2.0, ln=Math.floor(rad*6); for(var la=0;la<ln;la++){ var ang=(la/ln)*Math.PI*2; PT(Math.cos(ang)*rad,-2.0,Math.sin(ang)*rad,0); } }
+  function boxFill(cx,cy,cz,w,h,l,dens,tag){ for(var bi=0;bi<dens;bi++){ var fz=(Math.random()<0.5?-1:1); PT(cx+(Math.random()-0.5)*w,cy+(Math.random()-0.5)*h,cz+(Math.random()-0.5)*l+fz*l*0.5*(Math.random()<0.5?1:Math.random()),tag); } }
+  boxFill(0,-0.4,15,4.4,2.4,7,360,1); boxFill(-9,-0.4,10,3.4,2.0,5.5,210,1); boxFill(10,-0.2,21,3.6,2.2,6,210,1);
+  for(var lp=0;lp<7;lp++){ var lpx=(lp-3)*7+(Math.random()-0.5)*2, lpz=6+lp*3.4; for(var ls=0;ls<22;ls++){ PT(lpx,-2+ls*0.3,lpz,2); } }
+  for(var le=0;le<220;le++){ var lea=Math.random()*Math.PI*2, ler=4+Math.random()*30; PT(Math.cos(lea)*ler,-2+Math.random()*3.4,Math.sin(lea)*ler,3); }
+  var introStart=null, DUR=4800, lidarDone=false;
+  function easeIO(x){ return x<0.5?2*x*x:1-Math.pow(-2*x+2,2)/2; }
+  function finishIntro(){ if(lidarDone) return; lidarDone=true; ditherRunning=true;
+    document.body.classList.add("lidar-done"); document.body.classList.remove("intro");
+    setTimeout(function(){ if(lc){ lc.style.display="none"; } },1400); }
+  function drawLidar(now){
+    if(introStart===null) introStart=now;
+    var t=now-introStart, prog=Math.min(t/DUR,1), res=easeIO(prog);
+    lx.setTransform(LDPR,0,0,LDPR,0,0);
+    var gg=lx.createLinearGradient(0,0,0,LH); gg.addColorStop(0,"#05070a"); gg.addColorStop(1,"#070d10");
+    lx.fillStyle=gg; lx.fillRect(0,0,LW,LH);
+    var cam=-0.55+t*0.00009, cA=Math.cos(cam), sA=Math.sin(cam);
+    var camY=2.7-res*0.9, camZ=-7.5+res*2.2, foc=LH*0.92, cx0=LW/2, cy0=LH*0.54;
+    var sweep=(t*0.0021)%(Math.PI*2), jit=(1-res)*(1-res);
+    lx.globalCompositeOperation="lighter";
+    for(var i=0;i<pts.length;i++){
+      var P=pts[i], wob=Math.sin(t*0.004+P.s);
+      var x=P.x+P.jx*jit*7*wob, y=P.y+P.jy*jit*5*wob, z=P.z+P.jz*jit*7*Math.cos(t*0.004+P.s);
+      var rx=x*cA-z*sA, rz=x*sA+z*cA, ry=y-camY, zz=rz-camZ;
+      if(zz<=0.25) continue;
+      var sx=cx0+(rx*foc)/zz, sy=cy0-(ry*foc)/zz;
+      if(sx<-30||sx>LW+30||sy<-30||sy>LH+30) continue;
+      var az=Math.atan2(P.z,P.x), dAz=Math.abs(((az-sweep+Math.PI)%(Math.PI*2))-Math.PI), hot=dAz<0.30;
+      var size=Math.max(1,(foc/zz)*0.018)*(0.8+res*1.4);
+      var r,g,b;
+      if(P.base===1){ r=255; g=172; b=0; } else if(P.base===0){ r=70; g=170; b=160; }
+      else if(P.base===2){ r=120; g=200; b=190; } else { r=46; g=96; b=92; }
+      var rw=1-res; r=r*(1-rw*0.7)+60*rw*0.7; g=g*(1-rw*0.4)+150*rw*0.4; b=b*(1-rw*0.4)+145*rw*0.4;
+      var al=(0.30+res*0.55)*Math.max(0.18,1-zz/62);
+      if(hot){ al=Math.min(1,al+0.5); size*=1.4; r=Math.min(255,r+50); g=Math.min(255,g+50); b=Math.min(255,b+50); }
+      if(al<=0.02) continue;
+      lx.fillStyle="rgba("+(r|0)+","+(g|0)+","+(b|0)+","+al.toFixed(2)+")"; lx.fillRect(sx,sy,size,size);
+    }
+    lx.globalCompositeOperation="source-over";
+    if(res<0.92){ var ex=cx0+Math.cos(sweep)*LW, ey=cy0-Math.sin(sweep)*LW;
+      var gd=lx.createLinearGradient(cx0,cy0,ex,ey); gd.addColorStop(0,"rgba(120,200,190,"+(0.28*(1-res)).toFixed(3)+")"); gd.addColorStop(1,"rgba(120,200,190,0)");
+      lx.strokeStyle=gd; lx.lineWidth=2; lx.beginPath(); lx.moveTo(cx0,cy0); lx.lineTo(ex,ey); lx.stroke(); }
+    var fill=document.getElementById("snrFill"), num=document.getElementById("snrNum"), ph=document.getElementById("phaseTxt");
+    if(fill) fill.style.width=(2+res*98)+"%"; if(num) num.textContent="SNR "+res.toFixed(2);
+    if(ph){ var de=window.__LANG==="de";
+      var T=de?["erfasse · Rohdaten","verstärke · Struktur löst sich","Signal verriegelt"]:["acquiring · raw returns","amplifying · resolving structure","signal locked"];
+      ph.textContent=prog<0.4?T[0]:(prog<0.85?T[1]:T[2]); }
+    if(prog>=1){ finishIntro(); return; }
+    if(!lidarDone) requestAnimationFrame(drawLidar);
+  }
+  document.getElementById("skip").addEventListener("click",finishIntro);
+  if(reduce){ finishIntro(); } else { requestAnimationFrame(drawLidar); }
+
+  /* ===== theme + notes + cards ===== */
+  document.getElementById("themeBtn").addEventListener("click",function(){ var l=document.body.classList.toggle("light"); this.textContent=l?"☀":"◐"; bump("theme",6); refreshSig(); });
+  var notes=document.querySelectorAll("details.note");
+  notes.forEach(function(d){ d.addEventListener("toggle",function(){ if(d.open){ notes.forEach(function(o){ if(o!==d)o.open=false; }); bump("note"+(d.id||Math.random()),8); refreshSig(); } }); });
+  document.querySelectorAll("details.card").forEach(function(c){ c.addEventListener("toggle",function(){ if(c.open){ bump("card",6); refreshSig(); } }); });
+
+  /* ===== embedded crosswalk demo ===== */
+  var dInit=false;
+  document.getElementById("n01").addEventListener("toggle",function(){ if(this.open && !dInit){ dInit=true; setTimeout(initDemo,40); } });
+  function initDemo(){
+    var cv=document.getElementById("dC"), ctx=cv.getContext("2d");
+    var dpr=Math.min(window.devicePixelRatio||1,2);
+    var WLX=-4.5,WHX=4.5,WLY=-5,WHY=8, roadY0=0.5,roadY1=7,laneY=2.4;
+    var WAIT=[0,0.4], CROSS=[0.25,5.0], SM=[[0.22,0],[0,0.5]];
+    var Wd=0,Hd=0,sc=1,ox=0,oy=0, mX=(WLX+WHX)/2,mY=(WLY+WHY)/2;
+    function lay(){ var cw=cv.clientWidth||560, ch=cw*0.54; cv.width=Math.round(cw*dpr); cv.height=Math.round(ch*dpr); cv.style.height=ch+"px"; Wd=cw;Hd=ch; sc=Math.min(Wd/(WHX-WLX),Hd/(WHY-WLY))*0.95; ox=Wd/2; oy=Hd/2; ctx.setTransform(dpr,0,0,dpr,0,0); }
+    function Xc(x){ return ox+(x-mX)*sc; } function Yc(y){ return oy-(y-mY)*sc; }
+    var p=0.5, mode="both", car={x:5.5}, ped={ph:"idle",t:0,pos:[0,roadY0],path:null}, last=performance.now();
+    function eig(S){ var a=S[0][0],b=S[0][1],c=S[1][1],tr=a+c,det=a*c-b*b,ds=Math.sqrt(Math.max(0,(tr/2)*(tr/2)-det)),l1=tr/2+ds,l2=tr/2-ds,an; if(Math.abs(b)>1e-9)an=Math.atan2(l1-a,b); else an=(a>=c)?0:Math.PI/2; return {ax:Math.sqrt(Math.max(l1,1e-4)),ay:Math.sqrt(Math.max(l2,1e-4)),ang:an}; }
+    function mm(pc){ var wA=1-pc,wB=pc,mx=wA*WAIT[0]+wB*CROSS[0],my=wA*WAIT[1]+wB*CROSS[1],dA=[WAIT[0]-mx,WAIT[1]-my],dB=[CROSS[0]-mx,CROSS[1]-my],S=[[0,0],[0,0]]; function ad(w,d){S[0][0]+=w*(SM[0][0]+d[0]*d[0]);S[0][1]+=w*(SM[0][1]+d[0]*d[1]);S[1][1]+=w*(SM[1][1]+d[1]*d[1]);} ad(wA,dA);ad(wB,dB); return {m:[mx,my],S:S}; }
+    function ell(cx,cy,S,col,fa){ var e=eig(S); ctx.save(); ctx.translate(Xc(cx),Yc(cy)); ctx.rotate(-e.ang); ctx.beginPath(); ctx.ellipse(0,0,e.ax*2*sc,e.ay*2*sc,0,0,Math.PI*2); ctx.fillStyle=fa; ctx.fill(); ctx.lineWidth=1.4; ctx.strokeStyle=col; ctx.stroke(); ctx.restore(); }
+    function rr(x,y,w,h,r){ ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath(); }
+    var dPlab=document.getElementById("dPlab"), dCap=document.getElementById("dCap"), dVerd=document.getElementById("dVerd");
+    function scene(){
+      ctx.clearRect(0,0,Wd,Hd); ctx.fillStyle="#0e1614"; ctx.fillRect(0,0,Wd,Hd);
+      ctx.fillStyle="#11181a"; ctx.fillRect(0,Yc(roadY1),Wd,Yc(roadY0)-Yc(roadY1));
+      ctx.strokeStyle="rgba(255,255,255,.1)"; ctx.lineWidth=2; ctx.setLineDash([9,11]); ctx.beginPath(); ctx.moveTo(0,Yc(laneY+1.3)); ctx.lineTo(Wd,Yc(laneY+1.3)); ctx.stroke(); ctx.setLineDash([]);
+      ctx.strokeStyle="rgba(95,183,176,.5)"; ctx.lineWidth=2; ctx.beginPath();ctx.moveTo(0,Yc(roadY0));ctx.lineTo(Wd,Yc(roadY0));ctx.stroke(); ctx.beginPath();ctx.moveTo(0,Yc(roadY1));ctx.lineTo(Wd,Yc(roadY1));ctx.stroke();
+      ctx.fillStyle="rgba(255,255,255,.09)"; for(var s=-1.1;s<1.1;s+=0.42){ ctx.fillRect(Xc(s),Yc(roadY1),0.26*sc,Yc(roadY0)-Yc(roadY1)); }
+      ctx.fillStyle="rgba(120,140,138,.9)"; rr(Xc(car.x-2.2),Yc(laneY+0.95),4.4*sc,1.9*sc,5); ctx.fill();
+    }
+    function preds(){
+      ctx.lineWidth=1.4; ctx.setLineDash([4,6]); ctx.strokeStyle="rgba(255,255,255,.18)";
+      ctx.beginPath();ctx.moveTo(Xc(0),Yc(roadY0));ctx.lineTo(Xc(WAIT[0]),Yc(WAIT[1]));ctx.stroke();
+      ctx.beginPath();ctx.moveTo(Xc(0),Yc(roadY0));ctx.lineTo(Xc(CROSS[0]),Yc(CROSS[1]));ctx.stroke(); ctx.setLineDash([]);
+      if(mode==="imm"||mode==="both"){ ell(WAIT[0],WAIT[1],SM,"#5fb7b0","rgba(95,183,176,"+(0.1+0.32*(1-p)).toFixed(3)+")"); ell(CROSS[0],CROSS[1],SM,"#d9472b","rgba(217,71,43,"+(0.1+0.32*p).toFixed(3)+")"); }
+      if(mode==="kf"||mode==="both"){ var g=mm(p); ell(g.m[0],g.m[1],g.S,"#ffac00","rgba(255,172,0,.16)"); ctx.strokeStyle="#ffac00"; ctx.lineWidth=2.4; var ux=Xc(g.m[0]),uy=Yc(g.m[1]),q=6; ctx.beginPath();ctx.moveTo(ux-q,uy-q);ctx.lineTo(ux+q,uy+q);ctx.moveTo(ux+q,uy-q);ctx.lineTo(ux-q,uy+q);ctx.stroke(); }
+    }
+    function pedd(){ ctx.fillStyle="rgba(255,255,255,.18)"; ctx.beginPath();ctx.arc(Xc(ped.pos[0]),Yc(ped.pos[1]),9,0,Math.PI*2);ctx.fill(); ctx.fillStyle="#fff"; ctx.beginPath();ctx.arc(Xc(ped.pos[0]),Yc(ped.pos[1]),5,0,Math.PI*2);ctx.fill(); }
+    function loop(now){ var dt=Math.min(.05,(now-last)/1000); last=now; car.x-=dt*3; if(car.x<-6)car.x=6;
+      if(ped.ph==="idle"){ ped.pos=[0,roadY0+0.02*Math.sin(now*0.004)]; }
+      else if(ped.ph==="resolve"){ ped.t+=dt/1.8; var tt=Math.min(1,ped.t),e=tt<.5?2*tt*tt:1-Math.pow(-2*tt+2,2)/2; ped.pos=[ped.path[0][0]+(ped.path[1][0]-ped.path[0][0])*e,ped.path[0][1]+(ped.path[1][1]-ped.path[0][1])*e]; if(tt>=1)ped.ph="done"; }
+      scene(); preds(); pedd(); requestAnimationFrame(loop); }
+    function refresh(){ var de=window.__LANG==="de"; dPlab.textContent=(de?"p(quert) = ":"p(cross) = ")+p.toFixed(2); var amb=1-Math.abs(p-0.5)*2;
+      dCap.textContent= de ? (amb>0.55?"kollabiert zur Fahrbahnmitte":(p<0.5?"tendiert zu warten":"tendiert zu queren")) : (amb>0.55?"collapsing to mid-road":(p<0.5?"leans wait":"leans cross")); }
+    window.__demoRefresh=function(){ refresh(); dVerd.innerHTML=""; };
+    document.getElementById("dP").addEventListener("input",function(){ p=(+this.value)/100; dVerd.innerHTML=""; refresh(); });
+    document.getElementById("dSeg").addEventListener("click",function(ev){ var b=ev.target.closest("button"); if(!b)return; mode=b.getAttribute("data-m"); this.querySelectorAll("button").forEach(function(x){x.classList.toggle("on",x===b);}); });
+    document.getElementById("dSample").addEventListener("click",function(){ var de=window.__LANG==="de"; var cross=Math.random()<p, end=cross?CROSS:WAIT; ped.path=[[0,roadY0],[end[0],end[1]]]; ped.ph="resolve"; ped.t=0;
+      var g=mm(p), err=Math.hypot(end[0]-g.m[0],end[1]-g.m[1]), live=(g.m[1]>roadY0+0.4&&g.m[1]<roadY1);
+      if(de){ dVerd.innerHTML="<b style='color:var(--cream)'>Wahrheit: "+(cross?"QUERT":"WARTET")+".</b> Kalman-Mittelwert lag "+err.toFixed(2)+" m daneben"+(live?" — in der aktiven Spur":"")+". IMM hatte einen Modus auf dem Ergebnis."; }
+      else { dVerd.innerHTML="<b style='color:var(--cream)'>Truth: "+(cross?"CROSS":"WAIT")+".</b> Kalman mean was "+err.toFixed(2)+" m off"+(live?" — in the live lane":"")+". IMM had a mode on the outcome."; } });
+    lay(); window.addEventListener("resize",lay); refresh(); requestAnimationFrame(loop);
+  }
+
+  /* ===== terminal résumé ===== */
+  var term=document.getElementById("term"), out=document.getElementById("termOut"), inp=document.getElementById("termIn");
+  var EN={ banner:"tapan@portfolio : ADAS / autonomous systems\nType 'help' for commands. 'exit' to leave.",
+    help:"commands:  whoami · skills · notes · work · portrait · contact · clear · exit",
+    whoami:"Tapan Mehta — M.Sc. Commercial Vehicle Technology, RPTU Kaiserslautern.\nPerception, control & vehicle dynamics. Open to a Pflichtpraktikum.",
+    skills:"ADAS · sensor fusion · ROS 2 · motion prediction · vehicle-dynamics sim\nMSC Adams · MATLAB/Simulink · CAN · path planning · PyTorch · embedded · CV",
+    notes:"01 Kalman fails at a crosswalk (playable)\n02 a cloud broke my 3D-printer watchdog\n03 peak grip isn't at zero slip\n04 ROS 2 nodes drop messages silently",
+    work:"motion prediction · 3D-print watchdog · tire & handling sim · Cockpit · DayFrame",
+    contact:"email   tpmehta129@gmail.com\nlinkedin linkedin.com/in/mehta-tapan\ngithub  github.com/tednic129",
+    portrait:"[ portrait ] add portrait.jpg next to this file and the ASCII render lands here.",
+    nf:"command not found: " };
+  var DET={ banner:"tapan@portfolio : ADAS / autonome Systeme\nTippe 'help' für Befehle. 'exit' zum Verlassen.",
+    help:"befehle:  whoami · skills · notes · work · portrait · contact · clear · exit",
+    whoami:"Tapan Mehta — M.Sc. Nutzfahrzeugtechnik, RPTU Kaiserslautern.\nWahrnehmung, Regelung & Fahrdynamik. Offen für ein Pflichtpraktikum.",
+    skills:"ADAS · Sensorfusion · ROS 2 · Bewegungsvorhersage · Fahrdynamik-Sim\nMSC Adams · MATLAB/Simulink · CAN · Pfadplanung · PyTorch · Embedded · CV",
+    notes:"01 Kalman versagt am Zebrastreifen (spielbar)\n02 eine Wolke legte den 3D-Drucker-Watchdog lahm\n03 max. Grip liegt nicht bei null Schlupf\n04 ROS-2-Nodes verlieren Nachrichten lautlos",
+    work:"Bewegungsvorhersage · 3D-Druck-Watchdog · Reifen-/Fahrverhaltens-Sim · Cockpit · DayFrame",
+    contact:"e-mail  tpmehta129@gmail.com\nlinkedin linkedin.com/in/mehta-tapan\ngithub  github.com/tednic129",
+    portrait:"[ portrait ] lege portrait.jpg neben diese Datei, dann erscheint hier das ASCII-Porträt.",
+    nf:"befehl nicht gefunden: " };
+  function D(){ return window.__LANG==="de"?DET:EN; }
+  function tprint(s,cls){ var d=document.createElement("div"); if(cls)d.className=cls; d.textContent=s; out.appendChild(d); }
+  function openTerm(){ term.classList.add("show"); out.innerHTML=""; tprint(D().banner,"p"); inp.value=""; setTimeout(function(){inp.focus();},30); bump("term",10); refreshSig(); }
+  function closeTerm(){ term.classList.remove("show"); }
+  document.getElementById("termBtn").addEventListener("click",openTerm);
+  document.getElementById("termX").addEventListener("click",closeTerm);
+  inp.addEventListener("keydown",function(e){
+    if(e.key==="Enter"){ var raw=inp.value, v=raw.trim().toLowerCase(); tprint("tapan@portfolio:~$ "+raw,"c"); inp.value="";
+      if(v==="exit"||v==="quit"){ closeTerm(); return; }
+      if(v==="clear"){ out.innerHTML=""; return; }
+      if(v===""){ return; }
+      if(v==="portrait"){ var art=(window.__portraitAscii&&window.__portraitAscii()); tprint(art||D().portrait); out.parentNode.scrollTop=out.parentNode.scrollHeight; return; }
+      var dic=D(); tprint(dic[v]!==undefined?dic[v]:(dic.nf+v+"  (help)"));
+      out.parentNode.scrollTop=out.parentNode.scrollHeight; }
+  });
+  document.addEventListener("keydown",function(e){ if(e.key==="Escape") closeTerm(); });
+
+  /* ===== resolving portrait card (auto-framed to head & shoulders) ===== */
+  (function(){
+    var card=document.getElementById("portrait"); if(!card) return;
+    var im=document.getElementById("pImg"), cvp=document.getElementById("pCv"), pc=cvp.getContext("2d");
+    var oc=document.createElement("canvas"), oo=oc.getContext("2d");
+    var loaded=false, failed=false, cw=0, ch=0, dprp=1, lx2=-1, ly2=-1, hover=false;
+    var ZOOM=1.7, FX=0.5, FY=0.40, CFY=0.36;          // crop framing: zoom + focus point
+    function size(){ var r=card.getBoundingClientRect(); cw=r.width; ch=r.height; if(cw<2)return;
+      dprp=Math.min(window.devicePixelRatio||1,2);
+      cvp.width=Math.round(cw*dprp); cvp.height=Math.round(ch*dprp); pc.setTransform(dprp,0,0,dprp,0,0);
+      oc.width=Math.round(cw*dprp); oc.height=Math.round(ch*dprp); oo.setTransform(dprp,0,0,dprp,0,0); }
+    function frame(){ var iw=im.naturalWidth, ih=im.naturalHeight; if(!iw) return null;
+      var s=Math.max(cw/iw,ch/ih)*ZOOM; return {dw:iw*s,dh:ih*s,dx:cw*0.5-FX*iw*s,dy:ch*CFY-FY*ih*s}; }
+    function render(){
+      requestAnimationFrame(render);
+      if(cw<2){ return; }
+      pc.clearRect(0,0,cw,ch);
+      if(failed || !loaded){
+        var g=pc.createLinearGradient(0,0,0,ch); g.addColorStop(0,"#13201d"); g.addColorStop(1,"#0c1110");
+        pc.fillStyle=g; pc.fillRect(0,0,cw,ch);
+        pc.textAlign="center"; pc.fillStyle="rgba(95,183,176,.7)"; pc.font="600 13px 'IBM Plex Mono',monospace";
+        pc.fillText("portrait.jpg", cw/2, ch/2-4);
+        pc.fillStyle="rgba(170,180,176,.55)"; pc.font="10.5px 'IBM Plex Mono',monospace";
+        pc.fillText("add your photo to resolve", cw/2, ch/2+14);
+        return;
+      }
+      var f=frame(); if(!f) return;
+      pc.drawImage(im,f.dx,f.dy,f.dw,f.dh);                 // sharp colour base
+      // duotone-with-hole on offscreen, then composite over the colour base
+      oo.clearRect(0,0,cw,ch); oo.globalCompositeOperation="source-over"; oo.drawImage(im,f.dx,f.dy,f.dw,f.dh);
+      var light=document.body.classList.contains("light");
+      oo.globalCompositeOperation="color"; oo.fillStyle=light?"#2f5a5a":"#4a8f87"; oo.fillRect(0,0,cw,ch);
+      oo.globalCompositeOperation="multiply"; oo.fillStyle=light?"rgba(255,255,255,.05)":"rgba(8,16,14,.34)"; oo.fillRect(0,0,cw,ch);
+      var ax, ay, str;
+      if(hover){ ax=lx2; ay=ly2; str=1; }
+      else { var t=performance.now(); ax=cw*(0.5+0.24*Math.sin(t*0.0005)); ay=ch*(0.42+0.18*Math.sin(t*0.0004+1)); str=0.62; }
+      var R=Math.min(cw,ch)*0.34, rg=oo.createRadialGradient(ax,ay,0,ax,ay,R);
+      rg.addColorStop(0,"rgba(0,0,0,"+str+")"); rg.addColorStop(0.7,"rgba(0,0,0,"+(str*0.5)+")"); rg.addColorStop(1,"rgba(0,0,0,0)");
+      oo.globalCompositeOperation="destination-out"; oo.fillStyle=rg; oo.beginPath(); oo.arc(ax,ay,R,0,Math.PI*2); oo.fill();
+      oo.globalCompositeOperation="source-over";
+      pc.drawImage(oc,0,0,cw,ch);
+    }
+    card.addEventListener("pointermove",function(e){ var r=card.getBoundingClientRect(); lx2=e.clientX-r.left; ly2=e.clientY-r.top; hover=true; });
+    card.addEventListener("pointerleave",function(){ hover=false; });
+    im.addEventListener("load",function(){ loaded=true; failed=false; });
+    im.addEventListener("error",function(){ failed=true; });
+    im.src="portrait.jpg";
+    window.addEventListener("resize",size);
+    size(); requestAnimationFrame(render);
+    // client-side ASCII generator for the terminal 'portrait' command
+    window.__portraitAscii=function(){
+      if(!loaded||cw<2) return null;
+      try{
+        var Wc=56, iw=im.naturalWidth, ih=im.naturalHeight, Hc=Math.max(12,Math.round(Wc*0.5*(ch/cw)));
+        var tc=document.createElement("canvas"); tc.width=Wc; tc.height=Hc; var tx=tc.getContext("2d");
+        var s=Math.max(Wc/iw,Hc/ih)*ZOOM; tx.drawImage(im, Wc*0.5-FX*iw*s, Hc*CFY-FY*ih*s, iw*s, ih*s);
+        var d=tx.getImageData(0,0,Wc,Hc).data, ramp=" .:-=+*#%@", o="";
+        for(var y=0;y<Hc;y++){ for(var x=0;x<Wc;x++){ var i=(y*Wc+x)*4, lum=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114)/255;
+          o+=ramp[Math.max(0,Math.min(ramp.length-1,Math.round(lum*(ramp.length-1))))]; } o+="\n"; }
+        return o;
+      }catch(e){ return null; }
+    };
+  })();
+
+  refreshSig();
+})();
+</script>
+</body>
+</html>
