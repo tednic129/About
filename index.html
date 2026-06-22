@@ -217,6 +217,8 @@
   #term .scr{flex:1;overflow:auto;white-space:pre-wrap;word-break:break-word}
   #term .out span.p{color:var(--amber)}
   #term .out span.c{color:var(--teal-bright)}
+  #term .asciiart{white-space:pre;line-height:1;font-size:10px;letter-spacing:0;overflow-x:auto;color:#9fe6dc;margin:6px 0}
+  @media(max-width:520px){#term .asciiart{font-size:7.5px}}
   #term .inl{display:flex;gap:8px;align-items:center;border-top:1px solid rgba(95,183,176,.25);padding-top:12px;margin-top:8px}
   #term .inl .ps{color:var(--amber)}
   #term .inl input{flex:1;background:transparent;border:none;outline:none;color:#eafffb;font:inherit}
@@ -697,7 +699,10 @@
       if(v==="exit"||v==="quit"){ closeTerm(); return; }
       if(v==="clear"){ out.innerHTML=""; return; }
       if(v===""){ return; }
-      if(v==="portrait"){ var art=(window.__portraitAscii&&window.__portraitAscii()); tprint(art||D().portrait); out.parentNode.scrollTop=out.parentNode.scrollHeight; return; }
+      if(v==="portrait"){ var art=(window.__portraitAscii&&window.__portraitAscii());
+        if(art){ var ad=document.createElement("div"); ad.className="asciiart"; ad.textContent=art; out.appendChild(ad); }
+        else tprint(D().portrait);
+        out.parentNode.scrollTop=out.parentNode.scrollHeight; return; }
       var dic=D(); tprint(dic[v]!==undefined?dic[v]:(dic.nf+v+"  (help)"));
       out.parentNode.scrollTop=out.parentNode.scrollHeight; }
   });
@@ -756,12 +761,13 @@
     window.__portraitAscii=function(){
       if(!loaded||cw<2) return null;
       try{
-        var Wc=56, iw=im.naturalWidth, ih=im.naturalHeight, Hc=Math.max(12,Math.round(Wc*0.5*(ch/cw)));
+        var Wc=64, iw=im.naturalWidth, ih=im.naturalHeight, Hc=Math.max(16,Math.round(Wc*0.58*(ch/cw)));
         var tc=document.createElement("canvas"); tc.width=Wc; tc.height=Hc; var tx=tc.getContext("2d");
         var s=Math.max(Wc/iw,Hc/ih)*ZOOM; tx.drawImage(im, Wc*0.5-FX*iw*s, Hc*CFY-FY*ih*s, iw*s, ih*s);
-        var d=tx.getImageData(0,0,Wc,Hc).data, ramp=" .:-=+*#%@", o="";
-        for(var y=0;y<Hc;y++){ for(var x=0;x<Wc;x++){ var i=(y*Wc+x)*4, lum=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114)/255;
-          o+=ramp[Math.max(0,Math.min(ramp.length-1,Math.round(lum*(ramp.length-1))))]; } o+="\n"; }
+        var d=tx.getImageData(0,0,Wc,Hc).data, ramp=" .:-=+*o#%@", n=ramp.length-1, o="";
+        for(var y=0;y<Hc;y++){ for(var x=0;x<Wc;x++){ var i=(y*Wc+x)*4, l=(d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114)/255;
+          l=Math.pow(l,0.8); l=(l-0.5)*1.25+0.5; if(l<0)l=0; if(l>1)l=1;
+          o+=ramp[Math.round(l*n)]; } o+="\n"; }
         return o;
       }catch(e){ return null; }
     };
