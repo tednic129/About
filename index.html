@@ -198,6 +198,8 @@
   .nowpanel ul{list-style:none;margin-top:14px;display:flex;flex-direction:column;gap:9px}
   .nowpanel li{font-size:13px;color:var(--cream-dim);display:flex;gap:10px}
   .nowpanel li span{color:var(--teal-bright)}
+  .nowpanel .nowcur{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--cream-dim);line-height:1.5}
+  .nowpanel .nowcur .curlbl{display:block;font-size:9.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--teal-bright);margin-bottom:5px}
   .contact{margin-top:16px;display:flex;flex-wrap:wrap;gap:10px}
   .contact a{font-size:12.5px;color:var(--cream);text-decoration:none;padding:10px 15px;border-radius:999px;border:1px solid var(--line);background:var(--glass);transition:.2s}
   .contact a:hover{border-color:var(--amber);color:var(--amber)}
@@ -381,9 +383,9 @@
         <div class="nowpanel" id="now">
           <div class="status"><span class="dot"></span> <span data-i18n="nowStatus">Open to a Pflichtpraktikum</span></div>
           <ul>
-            <li><span>↳</span> <span data-i18n="nowLi1">ADAS / AD / vehicle-dynamics sim / robotics / applied ML for automotive.</span></li>
-            <li><span>↳</span> <span data-i18n="nowLi2">Werkstudent at Deutsche Post AG, Kaiserslautern — mobile across Germany.</span></li>
+            <li><span>↳</span> <span data-i18n="nowLi1">in ADAS / AD / vehicle-dynamics sim / robotics / applied ML for automotive.</span></li>
           </ul>
+          <div class="nowcur"><span class="curlbl" data-i18n="nowCurLbl">Currently</span><span data-i18n="nowCur">M.Sc. Commercial Vehicle Technology @ RPTU · 2 yrs Formula Student Driverless (KaRaT Racing e.V.).</span></div>
           <div class="contact">
             <a href="mailto:tpmehta129@gmail.com" data-i18n="cEmail">✉ Email</a>
             <a href="https://www.linkedin.com/in/mehta-tapan/" target="_blank" rel="noopener">in · LinkedIn</a>
@@ -479,8 +481,8 @@
     aP1:"Bachelor in <b>Maschinenbau</b>, jetzt M.Sc. <b>Nutzfahrzeugtechnik</b> an der RPTU. Kernfelder: ADAS, <span class=\"ev\" tabindex=\"0\">Sensorfusion<span class=\"pop\"><span class=\"tag\">beleg</span><b>Bewegungsvorhersage</b> + ROS-2-Wahrnehmungs-Stacks. <a href=\"https://github.com/tednic129?tab=repositories\" target=\"_blank\" rel=\"noopener\">repo →</a></span></span>, <span class=\"ev\" tabindex=\"0\">ROS 2<span class=\"pop\"><span class=\"tag\">beleg</span>DDS-QoS-Debugging — Feldnotiz 04.</span></span>, Bewegungsvorhersage, Fahrdynamik-Simulation, MATLAB/Simulink, CAN, PyTorch, Embedded und CV. Über zwei Jahre C#/Unity; aktuell mit Flutter.",
     aP2:"Ich halte meine Angaben ehrlich — Skills, die ich nicht geliefert habe, habe ich gestrichen. Fahre über alles Gestrichelte, und es zeigt seinen Beleg. Mir ist das Nicken der Fachleute lieber als der Klick der Masse.",
     nowStatus:"Offen für ein Pflichtpraktikum",
-    nowLi1:"ADAS / AD / Fahrdynamik-Sim / Robotik / angewandtes ML für die Automobilbranche.",
-    nowLi2:"Werkstudent bei der Deutsche Post AG, Kaiserslautern — bundesweit mobil.",
+    nowLi1:"in ADAS / AD / Fahrdynamik-Sim / Robotik / angewandtes ML für die Automobilbranche.",
+    nowCurLbl:"Aktuell", nowCur:"M.Sc. Nutzfahrzeugtechnik @ RPTU · 2 Jahre Formula Student Driverless (KaRaT Racing e.V.).",
     cEmail:"✉ E-Mail",
     pLabel:"Person · T. Mehta", pHint:"zum Auflösen bewegen →",
     lKicker:"Änderungslog", lH2:"Auch die Seite ist ein Engineering-Artefakt.",
